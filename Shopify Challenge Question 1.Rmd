@@ -1,0 +1,90 @@
+---
+title: "Shopify Challenge"
+author: "Yongpeng Fu"
+date: "15/05/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(magrittr)
+```
+# Question 1: 
+Given some sample data, write a program to answer the following: click [**here**](https://docs.google.com/spreadsheets/d/16i38oonuX1y1g7C_UAmiK9GkY7cS-64DfiDMNiR41LM/edit#gid=0) to access the required data set.  
+
+
+On Shopify, we have exactly 100 sneaker shops, and each of these shops sells only one model of shoe. We want to do some analysis of the average order value (AOV). When we look at orders data over a 30 day window, we naively calculate an AOV of \$3145.13. Given that we know these shops are selling sneakers, a relatively affordable item, something seems wrong with our analysis.
+
+* (a) Think about what could be going wrong with our calculation. Think about a better way to evaluate this data. 
+* (b) What metric would you report for this dataset?
+* (c) What is its value?
+
+## Load data
+```{r data}
+setwd("/Users/yongpengfu/Google Drive/Job Search in Canada/2022/Job Looking/Shopify")
+challenge <- as.tibble(read.csv("2019 Winter Data Science Intern Challenge Data Set.csv"))
+str(challenge)
+```
+From the structure of the data, I noticed that order_id, shop_id, and user_id are integer. They are actually character variable. And created_at is character type, while it should be datetime. I will change all of them.
+```{r type change}
+challenge$order_id <- as.character(challenge$order_id)
+challenge$shop_id <- as.character(challenge$shop_id)
+challenge$user_id <- as.character(challenge$user_id)
+challenge$created_at <- as.POSIXct(challenge$created_at)
+str(challenge)
+```
+## (a) Show statistics of the dataframe.
+```{r statistics}
+summary(challenge)
+```
+\textcolor{red}{Answer a:} From the above summary statistics, we can see the calculated AOV (\$3145) is the mean value of the total order amount for all shops. However, the actual AOV is calculated by dividing total revenue by the number of orders over the 30-day period.
+
+
+## (b) I would perfer to calculating AOV for each sneaker shop.
+I will group_by the dataset based on each shop id then divide the total revenue by the total number of orders for each shop.
+```{r outlier}
+aov_each_shop <- challenge %>% group_by(shop_id) %>% summarise(aov_shop = sum(order_amount)/sum(total_items))
+ggplot(data = aov_each_shop, aes(x = shop_id, y = aov_shop)) + geom_point()
+```
+From the above scatter plot, I can see one outlier. I will take a closer look at this particular one.
+```{r outlier_id}
+aov_each_shop[which(aov_each_shop$aov_shop == max(aov_each_shop$aov_shop)),]
+```
+The outlier is shop with id 78. The AOV for shop 78 is too high to be true, given the averge price for a pair of sneaker is between \$70 and \$250. The dataset for this outlier shop is as follows:
+```{r }
+challenge %>% filter(shop_id == 78)
+```
+## (c) The corresponding AOV value based on (b)
+We see shop 78 was selling one sneaker at price of \$25725, which I believe it is a typo. It probably meant \$257.25. We will correct this number and generate the AOV again.
+```{r correction}
+aov_each_shop[aov_each_shop$shop_id == 78,'aov_shop'] <- 257.25
+aov_each_shop %>% head(10)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
